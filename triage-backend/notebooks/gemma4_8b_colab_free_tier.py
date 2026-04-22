@@ -135,7 +135,7 @@ except FileNotFoundError:
 
 DATASET_PATHS = resolve_dataset_paths(REPO_ROOT)
 DATASET_PATHS = maybe_upload_datasets(DATASET_PATHS)
-MODEL_ID = "google/gemma-4-8b-it"
+MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
 OUTPUT_DIR = Path("/content/triage-dpo-gemma")
 MAX_PROMPT_CHARS = 1600
 MAX_RESPONSE_CHARS = 900
@@ -247,6 +247,7 @@ print(f"Loading {MODEL_ID} in 4-bit...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = "left"
 
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID,
