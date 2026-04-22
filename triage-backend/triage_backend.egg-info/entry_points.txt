@@ -1,0 +1,5 @@
+[console_scripts]
+triage-episode = scripts.run_episode:main
+triage-report = scripts.generate_training_report:main
+triage-server = triage.api.main:main
+triage-train = scripts.run_training:main

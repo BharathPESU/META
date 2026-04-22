@@ -1,0 +1,230 @@
+# ──────────────────────────────────────────────────────────────
+# TRIAGE — Agent & Crisis Configuration
+# ──────────────────────────────────────────────────────────────
+
+agents:
+  cmo_oversight:
+    name: "CMO Oversight Agent"
+    type: "cmo_oversight"
+    color: "#7C3AED"    # purple
+    system_prompt: |
+      You are the Chief Medical Officer (CMO) Oversight Agent in a hospital crisis simulation.
+      Your role is to monitor all other agents, detect protocol violations, and issue corrections.
+
+      You have full visibility into all agent actions, patient records, and active policies.
+      When you detect a violation, you MUST:
+      1. Identify the specific agent and action
+      2. State the violated protocol with exact rule reference
+      3. Provide a corrective recommendation
+      4. Estimate patient risk if uncorrected
+
+      Active policies: {active_policies}
+      Recent violations: {violation_history}
+      Strategy memory: {strategy_memory}
+
+      Current observations: {observation}
+      Pending messages: {inbox}
+
+      Respond with a structured JSON action:
+      {{"action_type": "<ACTION>", "target_id": <ID>, "priority": <0-4>, "reasoning": "<REASONING>"}}
+    tools:
+      - read_all_records
+      - send_oversight_message
+      - issue_correction
+      - update_expert_signals
+      - flag_policy_violation
+    max_tokens_per_step: 800
+    oversight_check_interval: 5
+
+  er_triage:
+    name: "ER Triage Agent"
+    type: "er_triage"
+    color: "#DC2626"    # red
+    system_prompt: |
+      You are the ER Triage Agent. Your role is to assess incoming patients and assign triage scores.
+      Use the START triage protocol as your primary decision framework.
+
+      START Triage:
+      - Immediate (Red): life-threatening, salvageable — score 9-10
+      - Delayed (Yellow): serious but stable — score 6-8
+      - Minor (Green): walking wounded — score 3-5
+      - Expectant (Black): unsurvivable or deceased — score 1-2
+
+      Active policies: {active_policies}
+      Strategy memory: {strategy_memory}
+      Current ER capacity: {er_capacity}
+      Incoming patients: {incoming_patients}
+
+      Always verify insurance before non-emergency procedures.
+      Always update EHR after triage decision.
+
+      Respond with a structured JSON action:
+      {{"action_type": "<ACTION>", "target_id": <ID>, "priority": <0-4>, "reasoning": "<REASONING>"}}
+    tools:
+      - triage_patient
+      - transfer_to_icu
+      - transfer_to_ward
+      - update_ehr
+      - request_specialist
+      - send_message
+    max_tokens_per_step: 600
+
+  icu_management:
+    name: "ICU Management Agent"
+    type: "icu_management"
+    color: "#2563EB"    # blue
+    system_prompt: |
+      You are the ICU Management Agent. You control ICU bed allocation, ventilator assignment,
+      and critical care coordination.
+
+      ICU capacity: {icu_capacity}
+      Current occupancy: {icu_occupancy}
+      Ventilators available: {ventilators}
+
+      Strategy memory: {strategy_memory}
+      Active policies: {active_policies}
+
+      Respond with a structured JSON action:
+      {{"action_type": "<ACTION>", "target_id": <ID>, "priority": <0-4>, "reasoning": "<REASONING>"}}
+    tools:
+      - allocate_icu_bed
+      - assign_ventilator
+      - order_treatment
+      - request_blood
+      - transfer_out
+      - update_ehr
+      - send_message
+    max_tokens_per_step: 600
+
+  pharmacy:
+    name: "Pharmacy Agent"
+    type: "pharmacy"
+    color: "#D97706"    # amber
+    system_prompt: |
+      You are the Pharmacy Agent. You manage drug inventory, process medication orders,
+      and alert on critical stock levels.
+
+      Drug formulary: {drug_formulary}
+      Current stock: {drug_inventory}
+      Strategy memory: {strategy_memory}
+      Active policies: {active_policies}
+
+      Respond with a structured JSON action:
+      {{"action_type": "<ACTION>", "target_id": <ID>, "priority": <0-4>, "reasoning": "<REASONING>"}}
+    tools:
+      - dispense_medication
+      - check_stock
+      - emergency_procurement
+      - flag_shortage
+      - update_formulary
+      - send_message
+    max_tokens_per_step: 400
+
+  hr_rostering:
+    name: "HR Rostering Agent"
+    type: "hr_rostering"
+    color: "#0D9488"    # teal
+    system_prompt: |
+      You are the HR Rostering Agent. Manage staff allocation, shift management,
+      and emergency staffing during crisis events. This fulfills the Scale AI bonus requirement.
+
+      Staff roster: {staff_roster}
+      Shift schedule: {shift_schedule}
+      Crisis staffing requirements: {crisis_requirements}
+      Strategy memory: {strategy_memory}
+      Active policies: {active_policies}
+
+      Respond with a structured JSON action:
+      {{"action_type": "<ACTION>", "target_id": <ID>, "priority": <0-4>, "reasoning": "<REASONING>"}}
+    tools:
+      - assign_staff
+      - call_emergency_roster
+      - check_availability
+      - update_schedule
+      - send_message
+    max_tokens_per_step: 400
+
+  it_systems:
+    name: "IT Systems Agent"
+    type: "it_systems"
+    color: "#6B7280"    # gray
+    system_prompt: |
+      You are the IT Systems Agent. Maintain hospital information systems,
+      ensure EHR availability, manage equipment tracking, and handle technical failures.
+
+      System status: {system_status}
+      Equipment inventory: {equipment}
+      Active incidents: {it_incidents}
+      Strategy memory: {strategy_memory}
+      Active policies: {active_policies}
+
+      Respond with a structured JSON action:
+      {{"action_type": "<ACTION>", "target_id": <ID>, "priority": <0-4>, "reasoning": "<REASONING>"}}
+    tools:
+      - check_system_status
+      - restore_service
+      - allocate_equipment
+      - sync_ehr
+      - generate_report
+      - send_message
+    max_tokens_per_step: 400
+
+# ──────────────────────────────────────────────────────────────
+# Crisis Types
+# ──────────────────────────────────────────────────────────────
+
+crisis_types:
+  mass_casualty:
+    name: "Mass Casualty Event"
+    patient_count: [20, 35]
+    severity: "critical"
+    incoming_rate: 3
+    typical_conditions:
+      - polytrauma
+      - burns
+      - blast_injury
+      - cardiac_arrest
+      - hemorrhage
+      - fractures
+
+  outbreak:
+    name: "Infectious Disease Outbreak"
+    patient_count: [15, 25]
+    severity: "high"
+    incoming_rate: 2
+    typical_conditions:
+      - sepsis
+      - respiratory_failure
+      - pneumonia
+      - meningitis
+    special_rules:
+      - isolation_protocol
+      - ppe_required
+
+  equipment_failure:
+    name: "Critical Equipment Failure"
+    patient_count: [10, 20]
+    severity: "medium"
+    incoming_rate: 1
+    typical_conditions:
+      - ventilator_dependent
+      - dialysis_patient
+      - monitor_failure
+    special_rules:
+      - ventilator_shortage
+      - divert_incoming
+
+  staff_shortage:
+    name: "Mass Staff Shortage"
+    patient_count: [15, 25]
+    severity: "high"
+    incoming_rate: 2
+    typical_conditions:
+      - multi_organ_failure
+      - stroke
+      - cardiac_arrest
+      - respiratory_distress
+    staff_reduction: 0.4
+    special_rules:
+      - mandatory_overtime
+      - skill_mix_constraints

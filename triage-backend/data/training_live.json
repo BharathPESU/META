@@ -1,0 +1,17 @@
+{
+  "phase": "training",
+  "progress": 0.99,
+  "step": 4455,
+  "total_steps": 4450,
+  "epoch": 5.0,
+  "total_epochs": 5,
+  "loss": 0.0267,
+  "avg_loss": 0.0267,
+  "elapsed_seconds": 29694.2,
+  "eta_seconds": -33.3,
+  "vram_used_gb": 0.76,
+  "vram_total_gb": 3.68,
+  "gpu_pct": 20.8,
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "train_samples": 7125
+}
