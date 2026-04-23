@@ -1,0 +1,20 @@
+{
+  "id": "balaraj74/triage-grpo-training-qwen3-2b",
+  "title": "TRIAGE GRPO Training — Qwen3-2B",
+  "code_file": "triage_grpo_kaggle.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "keywords": [
+    "meta-pytorch-openenv",
+    "grpo",
+    "reinforcement-learning",
+    "triage",
+    "qwen"
+  ],
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}
