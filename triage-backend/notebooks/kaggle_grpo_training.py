@@ -8,7 +8,7 @@ Uses: transformers + peft + trl + bitsandbytes
 # ═══════════════════════════════════════════════════════════════════════════════
 # Cell 1: Install
 # ═══════════════════════════════════════════════════════════════════════════════
-# !pip install -q "transformers>=4.46" "trl>=0.12" "peft>=0.13" "bitsandbytes>=0.44" datasets accelerate
+# !pip install -q git+https://github.com/huggingface/transformers.git "trl>=0.12" "peft>=0.13" "bitsandbytes>=0.44" datasets accelerate
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Cell 2: Config
