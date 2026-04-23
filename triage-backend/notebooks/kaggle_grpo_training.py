@@ -19,7 +19,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger('triage_grpo')
 
-MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"  # Stable, works on P100+T4
+MODEL_NAME = "Qwen/Qwen3-2B"  # Latest Qwen3 model
 MAX_SEQ_LENGTH = 512
 LOAD_IN_4BIT = True
 LORA_R = 16
