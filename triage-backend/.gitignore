@@ -1,9 +1,5 @@
-.venv/
 .venv
+.venv/
 __pycache__/
-*.pyc
-data/
-*.db
-models/*/
-!models/merged_final/
-*.safetensors
+*.py[cod]
+*$py.class
