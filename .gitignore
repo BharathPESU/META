@@ -1,0 +1,60 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+*.pyd
+.Python
+
+# Build / eggs
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ML model weights (large binary files — use HuggingFace Hub instead)
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Logs
+*.log
+backend.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / frontend
+node_modules/
+.next/
+dist/
+
+# Kaggle output
+*.csv
+*.zip
+
+# Diff scratch files
+pr_diff.txt
+pr_diff_clean.txt
