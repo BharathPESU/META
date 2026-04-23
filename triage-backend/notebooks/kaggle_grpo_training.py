@@ -320,6 +320,7 @@ def load_model():
         trust_remote_code=True,
         attn_implementation="eager",  # P100 safe — no flash attention
         token=hf_token,
+        torch_dtype=torch.float16,    # Force FP16 instead of native BF16
     )
     model = prepare_model_for_kbit_training(model)
 
