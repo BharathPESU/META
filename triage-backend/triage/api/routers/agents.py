@@ -37,6 +37,11 @@ async def get_infection_status() -> ApiResponse:
     return ApiResponse(success=True, data=backend_service.get_infection_status())
 
 
+@router.get("/dispatch/status", response_model=ApiResponse)
+async def get_dispatch_status() -> ApiResponse:
+    return ApiResponse(success=True, data=backend_service.get_dispatch_status())
+
+
 @router.get("/{agent_type}/status", response_model=ApiResponse)
 async def get_agent_status(agent_type: AgentType) -> ApiResponse:
     return ApiResponse(success=True, data=backend_service.get_agent_status(agent_type))

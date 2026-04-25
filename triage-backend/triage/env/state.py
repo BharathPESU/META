@@ -47,6 +47,7 @@ class IsolationStatus(str, Enum):
 
 
 class AgentType(str, Enum):
+    AMBULANCE_DISPATCH = "ambulance_dispatch"
     CMO_OVERSIGHT = "cmo_oversight"
     ER_TRIAGE = "er_triage"
     INFECTION_CONTROL = "infection_control"
@@ -70,6 +71,14 @@ class CrisisType(str, Enum):
     OUTBREAK = "outbreak"
     EQUIPMENT_FAILURE = "equipment_failure"
     STAFF_SHORTAGE = "staff_shortage"
+
+
+class AmbulanceStatus(str, Enum):
+    AVAILABLE = "available"
+    EN_ROUTE = "en_route"
+    ON_SCENE = "on_scene"
+    RETURNING = "returning"
+    OFFLINE = "offline"
 
 
 class SafetyViolationType(str, Enum):
@@ -232,6 +241,46 @@ class Patient:
 
 
 @dataclass
+class Ambulance:
+    unit_id: str
+    status: AmbulanceStatus
+    patient_id: str | None
+    eta_steps: int
+    acuity_estimate: int
+    incident_type: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "unit_id": self.unit_id,
+            "status": self.status.value if isinstance(self.status, AmbulanceStatus) else str(self.status),
+            "patient_id": self.patient_id,
+            "eta_steps": self.eta_steps,
+            "acuity_estimate": self.acuity_estimate,
+            "incident_type": self.incident_type,
+        }
+
+
+@dataclass
+class IncomingPatient:
+    patient_id: str
+    acuity_estimate: int
+    incident_type: str
+    eta_steps: int
+    ambulance_id: str
+    pre_alert_sent: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "patient_id": self.patient_id,
+            "acuity_estimate": self.acuity_estimate,
+            "incident_type": self.incident_type,
+            "eta_steps": self.eta_steps,
+            "ambulance_id": self.ambulance_id,
+            "pre_alert_sent": self.pre_alert_sent,
+        }
+
+
+@dataclass
 class ResourceState:
     icu_beds_total: int = 20
     icu_beds_occupied: int = 0
@@ -331,6 +380,8 @@ class Crisis:
     staff_roster: dict[str, Any] = field(default_factory=dict)
     icu_config: dict[str, Any] = field(default_factory=dict)
     insurance_policies: dict[str, Any] = field(default_factory=dict)
+    initial_incoming_patients: list[IncomingPatient] = field(default_factory=list)
+    offline_ambulance_count: int = 0
     staff_reduction: float = 1.0
 
     def to_dict(self) -> dict[str, Any]:
@@ -605,6 +656,15 @@ class EnvironmentState:
     infection_events: list[InfectionEvent] = field(default_factory=list)
     ward_lockdowns: dict[str, bool] = field(default_factory=dict)
     active_pathogens: list[str] = field(default_factory=list)
+    ambulances: list[Ambulance] = field(
+        default_factory=lambda: [
+            Ambulance(f"AMB-{i:02d}", AmbulanceStatus.AVAILABLE, None, 0, 0, "")
+            for i in range(1, 6)
+        ]
+    )
+    incoming_patients: list[IncomingPatient] = field(default_factory=list)
+    diverted_count: int = 0
+    dispatch_events: list[dict[str, Any]] = field(default_factory=list)
     violations_injected: int = 0
     violations_caught: int = 0
     step_count: int = 0
@@ -816,6 +876,10 @@ class EnvironmentState:
             "infection_events": [event.to_dict() for event in self.infection_events[-25:]],
             "ward_lockdowns": self.ward_lockdowns,
             "active_pathogens": self.active_pathogens,
+            "ambulances": [ambulance.to_dict() for ambulance in self.ambulances],
+            "incoming_patients": [patient.to_dict() for patient in self.incoming_patients],
+            "diverted_count": self.diverted_count,
+            "dispatch_events": self.dispatch_events[-25:],
             "stats": {
                 "alive_count": self.alive_count,
                 "deceased_count": self.deceased_count,

@@ -10,7 +10,7 @@ from typing import Any
 import yaml
 
 from triage.agents.message_bus import MessageBus
-from triage.agents.specialized import InfectionControlAgent, create_all_agents
+from triage.agents.specialized import AmbulanceDispatchAgent, InfectionControlAgent, create_all_agents
 from triage.env.hospital_env import HospitalEnv
 from triage.env.state import (
     ActionType,
@@ -26,6 +26,8 @@ from triage.safety.constitution import SafetyConstitution
 
 
 AGENT_STEP_ORDER = [
+    # AMBULANCE_DISPATCH must run first; it controls patient inflow.
+    AgentType.AMBULANCE_DISPATCH,
     AgentType.CMO_OVERSIGHT,
     AgentType.ER_TRIAGE,
     AgentType.INFECTION_CONTROL,

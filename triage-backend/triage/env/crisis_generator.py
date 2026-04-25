@@ -20,6 +20,7 @@ import numpy as np
 from triage.env.state import (
     Crisis,
     CrisisType,
+    IncomingPatient,
     Patient,
     PatientStatus,
     Policy,
@@ -288,6 +289,17 @@ class CrisisGenerator:
             blood_inv["O+"] = 8
             blood_inv["O-"] = 4
 
+        initial_incoming_patients: list[IncomingPatient] = []
+        if ctype == CrisisType.MASS_CASUALTY:
+            for index in range(1, 6):
+                initial_incoming_patients.append(IncomingPatient(
+                    patient_id=f"MCI-IN-{uuid.uuid4().hex[:8]}",
+                    acuity_estimate=10 - (index % 4),
+                    incident_type=["trauma", "respiratory", "cardiac"][index % 3],
+                    eta_steps=1,
+                    ambulance_id=f"AMB-{index:02d}",
+                ))
+
         return Crisis(
             type=ctype,
             name=name,
@@ -309,6 +321,8 @@ class CrisisGenerator:
                 "verify_all": True,
                 "emergency_bypass": difficulty < 0.3,
             },
+            initial_incoming_patients=initial_incoming_patients,
+            offline_ambulance_count=2 if ctype == CrisisType.STAFF_SHORTAGE else 0,
             staff_reduction=staff_reduction,
         )
 
