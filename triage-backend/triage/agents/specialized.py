@@ -72,6 +72,16 @@ def _focus_note(focus: str, signals: dict[str, float]) -> str:
     )
 
 
+def _json_safe_default(value: Any) -> Any:
+    if hasattr(value, "to_dict"):
+        return value.to_dict()
+    if hasattr(value, "model_dump"):
+        return value.model_dump()
+    if hasattr(value, "value"):
+        return value.value
+    return str(value)
+
+
 # ─── Ambulance Dispatch Agent ────────────────────────────────
 
 class AmbulanceDispatchAgent(BaseAgent):
@@ -397,6 +407,21 @@ class CMOOversightAgent(BaseAgent):
         prompt = self._build_cmo_prompt(state, inbox)
         response = await self._call_llm(prompt, context)
         return self._parse_actions(response, state)
+
+    def _parse_actions(self, response: dict[str, Any], state: EnvironmentState) -> list[AgentAction]:
+        actions = []
+        for a in response.get("actions", []):
+            try:
+                actions.append(AgentAction(
+                    agent_type=self.agent_type,
+                    action_type=ActionType[a.get("action_type", "OVERRIDE_DECISION")],
+                    target_id=int(a.get("target_id", 0)),
+                    priority=int(a.get("priority", 5)),
+                    reasoning=a.get("reasoning", ""),
+                ))
+            except (KeyError, ValueError):
+                continue
+        return actions
 
     def _rule_based_decision(self, state: EnvironmentState, inbox: list[AgentMessage]) -> list[AgentAction]:
         actions: list[AgentAction] = []
@@ -806,6 +831,21 @@ class ICUManagementAgent(BaseAgent):
         response = await self._call_llm(prompt, context)
         return self._parse_actions(response, state)
 
+    def _parse_actions(self, response: dict[str, Any], state: EnvironmentState) -> list[AgentAction]:
+        actions = []
+        for a in response.get("actions", []):
+            try:
+                actions.append(AgentAction(
+                    agent_type=self.agent_type,
+                    action_type=ActionType[a.get("action_type", "TRANSFER_TO_ICU")],
+                    target_id=int(a.get("target_id", 0)),
+                    priority=int(a.get("priority", 5)),
+                    reasoning=a.get("reasoning", ""),
+                ))
+            except (KeyError, ValueError):
+                continue
+        return actions
+
     def _rule_based_decision(self, state: EnvironmentState, inbox: list[AgentMessage]) -> list[AgentAction]:
         actions: list[AgentAction] = []
         focus, signals = _expert_focus(state)
@@ -882,6 +922,21 @@ class PharmacyAgent(BaseAgent):
         prompt = "Manage pharmacy operations. Process orders, check interactions, monitor stock."
         response = await self._call_llm(prompt, context)
         return self._parse_actions(response, state)
+
+    def _parse_actions(self, response: dict[str, Any], state: EnvironmentState) -> list[AgentAction]:
+        actions = []
+        for a in response.get("actions", []):
+            try:
+                actions.append(AgentAction(
+                    agent_type=self.agent_type,
+                    action_type=ActionType[a.get("action_type", "ORDER_MEDICATION")],
+                    target_id=int(a.get("target_id", 0)),
+                    priority=int(a.get("priority", 5)),
+                    reasoning=a.get("reasoning", ""),
+                ))
+            except (KeyError, ValueError):
+                continue
+        return actions
 
     def _rule_based_decision(self, state: EnvironmentState, inbox: list[AgentMessage]) -> list[AgentAction]:
         actions: list[AgentAction] = []
@@ -1034,6 +1089,21 @@ class ITSystemsAgent(BaseAgent):
         response = await self._call_llm(prompt, context)
         return self._parse_actions(response, state)
 
+    def _parse_actions(self, response: dict[str, Any], state: EnvironmentState) -> list[AgentAction]:
+        actions = []
+        for a in response.get("actions", []):
+            try:
+                actions.append(AgentAction(
+                    agent_type=self.agent_type,
+                    action_type=ActionType[a.get("action_type", "FLAG_POLICY_VIOLATION")],
+                    target_id=int(a.get("target_id", 0)),
+                    priority=int(a.get("priority", 5)),
+                    reasoning=a.get("reasoning", ""),
+                ))
+            except (KeyError, ValueError):
+                continue
+        return actions
+
     def _rule_based_decision(self, state: EnvironmentState, inbox: list[AgentMessage]) -> list[AgentAction]:
         actions: list[AgentAction] = []
         focus, signals = _expert_focus(state)
@@ -1108,10 +1178,29 @@ class BloodBankAgent(BaseAgent):
         context = self._build_state_context(state)
         # Pass current inventory dict and pending_requests as JSON context
         import json
-        extra_ctx = json.dumps({"inventory": self.inventory, "pending_requests": self.pending_requests})
+        extra_ctx = json.dumps(
+            {"inventory": self.inventory, "pending_requests": self.pending_requests},
+            default=_json_safe_default,
+        )
         context = f"{context}\nBlood Bank Context:\n{extra_ctx}"
         prompt = self.config.get("system_prompt", "Manage blood inventory.")
-        return await self._call_llm(prompt, context, state)
+        response = await self._call_llm(prompt, context)
+        return self._parse_actions(response, state)
+
+    def _parse_actions(self, response: dict[str, Any], state: EnvironmentState) -> list[AgentAction]:
+        actions = []
+        for a in response.get("actions", []):
+            try:
+                actions.append(AgentAction(
+                    agent_type=self.agent_type,
+                    action_type=ActionType[a.get("action_type", "REQUEST_BLOOD")],
+                    target_id=int(a.get("target_id", 0)),
+                    priority=int(a.get("priority", 5)),
+                    reasoning=a.get("reasoning", ""),
+                ))
+            except (KeyError, ValueError):
+                continue
+        return actions
 
     def _parse_llm_response(self, raw: str) -> list[AgentAction]:
         # Keep parsing isolated as requested in docs
@@ -1262,12 +1351,27 @@ class EthicsCommitteeAgent(BaseAgent):
                 ))
         
         import json
-        extra_ctx = json.dumps({"scenarios": scenarios})
+        extra_ctx = json.dumps({"scenarios": scenarios}, default=_json_safe_default)
         context = f"{context}\nRationing Scenarios:\n{extra_ctx}"
         prompt = self.config.get("system_prompt", "Manage ethics.")
-        llm_actions = await self._call_llm(prompt, context, state)
+        llm_actions = self._parse_actions(await self._call_llm(prompt, context), state)
         actions.extend(llm_actions)
         return [a for a in actions if a is not None]
+
+    def _parse_actions(self, response: dict[str, Any], state: EnvironmentState) -> list[AgentAction]:
+        actions = []
+        for a in response.get("actions", []):
+            try:
+                actions.append(AgentAction(
+                    agent_type=self.agent_type,
+                    action_type=ActionType[a.get("action_type", "FLAG_POLICY_VIOLATION")],
+                    target_id=int(a.get("target_id", 0)),
+                    priority=int(a.get("priority", 5)),
+                    reasoning=a.get("reasoning", ""),
+                ))
+            except (KeyError, ValueError):
+                continue
+        return actions
 
     def _rule_based_decision(self, state: EnvironmentState, inbox: list[AgentMessage]) -> list[BaseModel]:
         actions = []
