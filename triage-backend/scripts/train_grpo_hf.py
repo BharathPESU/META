@@ -41,15 +41,48 @@ logger = logging.getLogger("train_grpo_hf")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# HF SPACES HEALTH-CHECK SERVER (port 7860)
+# HF Docker Spaces require an HTTP endpoint to transition from APP_STARTING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_STATUS = {"phase": "initializing", "step": 0, "loss": None}
+
+
+def _start_health_server(port: int = 7860) -> None:
+    """Start a minimal HTTP server for HF Spaces health checks."""
+    import threading
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+
+    class _Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = json.dumps(
+                {"status": "ok", "training": _STATUS}, indent=2
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_args):  # suppress access logs
+            pass
+
+    server = HTTPServer(("0.0.0.0", port), _Handler)
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    logger.info("Health-check server listening on :%d", port)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
 DEFAULTS = {
-    # Model — Qwen3.6-27B 4-bit via Unsloth
-    "model": "unsloth/Qwen3.6-27B-bnb-4bit",
-    "max_seq_length": 1024,
+    # Model — Qwen3.5-9B (latest gen, 4-bit quantization via load_in_4bit=True)
+    # 9B 4-bit fits on L40S-44GB with GRPO overhead
+    "model": "unsloth/Qwen3.5-9B",
+    "max_seq_length": 512,
 
-    # LoRA
+    # LoRA — higher rank feasible with 9B
     "lora_r": 32,
     "lora_alpha": 32,
     "lora_dropout": 0,
@@ -58,18 +91,21 @@ DEFAULTS = {
         "gate_proj", "up_proj", "down_proj",
     ],
 
-    # GRPO
-    "num_generations": 8,
-    "max_completion_length": 256,
+    # GRPO — tuned for L40S 44GB
+    # Unsloth forces per_device_train_batch_size = num_generations
+    # So actual VRAM per step = num_gen × (prompt + completion) tokens × KV-cache
+    "num_generations": 4,
+    "max_completion_length": 200,
     "temperature": 0.9,
 
-    # Training
+    # Training — L40S 44GB budget
+    # Effective batch = num_gen(4) × grad_accum(8) = 32
     "epochs": 3,
     "batch_size": 2,
-    "grad_accum": 4,
-    "lr": 2e-5,
-    "logging_steps": 5,
-    "save_steps": 100,
+    "grad_accum": 8,
+    "lr": 5e-6,
+    "logging_steps": 1,
+    "save_steps": 200,
 
     # Paths
     "output_dir": "./models/grpo_hf_output",
@@ -434,7 +470,7 @@ def _augment_from_hf(max_per_source: int) -> list[str]:
 
     for repo, config, fields in _HF_SOURCES:
         try:
-            kwargs = {"split": "train", "streaming": True, "trust_remote_code": True}
+            kwargs = {"split": "train", "streaming": True}
             if config:
                 kwargs["name"] = config
             ds = load_dataset(repo, **kwargs)
@@ -513,6 +549,10 @@ def main():
 
     start = time.time()
 
+    # Start health-check server FIRST so HF Spaces marks us as RUNNING
+    _start_health_server()
+    _STATUS["phase"] = "loading_model"
+
     # ── Step 1: Load model ────────────────────────────────────────────────────
     logger.info("Loading model: %s", args.model)
 
@@ -544,7 +584,7 @@ def main():
         )
 
     # ── Step 3: Load dataset ──────────────────────────────────────────────────
-    prompts = load_dataset_prompts(args.dataset)
+    prompts = list(load_dataset_prompts(args.dataset))  # Convert Column → list
     logger.info("Loaded %d base prompts", len(prompts))
 
     # Cloud-side augmentation from HF medical datasets
@@ -605,6 +645,7 @@ def main():
     )
 
     # ── Step 5: Train ─────────────────────────────────────────────────────────
+    _STATUS["phase"] = "training"
     logger.info("Starting GRPO training...")
     train_result = trainer.train(resume_from_checkpoint=args.resume)
     logger.info("Training complete. Metrics: %s", train_result.metrics)
@@ -630,6 +671,22 @@ def main():
                     args.hub_model, tokenizer, save_method="merged_16bit",
                 )
                 logger.info("Pushed to HF Hub.")
+
+                # Also push raw LoRA adapter for multi-account merge
+                lora_hub = args.hub_model + "-lora"
+                try:
+                    from huggingface_hub import HfApi
+                    hf_api = HfApi()
+                    hf_api.create_repo(lora_hub, exist_ok=True,
+                                       token=os.environ.get("HF_TOKEN"))
+                    hf_api.upload_folder(
+                        folder_path=args.output,
+                        repo_id=lora_hub,
+                        token=os.environ.get("HF_TOKEN"),
+                    )
+                    logger.info("LoRA adapter pushed to %s", lora_hub)
+                except Exception as lora_exc:
+                    logger.warning("LoRA push failed: %s", lora_exc)
         except Exception as exc:
             logger.warning("Merge/push failed: %s. LoRA adapters saved.", exc)
 
