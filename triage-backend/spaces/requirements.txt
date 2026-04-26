@@ -7,3 +7,5 @@ jinja2
 setuptools
 fastapi
 uvicorn
+plotly
+pandas
