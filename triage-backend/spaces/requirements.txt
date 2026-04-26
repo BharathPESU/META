@@ -1,3 +1,4 @@
+audioop-lts
 gradio>=4.0.0
 transformers>=4.46.0
 torch>=2.0.0

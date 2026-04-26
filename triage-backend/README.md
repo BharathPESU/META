@@ -37,7 +37,7 @@
 
 **TRIAGE** is a hospital crisis simulation built on the **OpenEnv** agentic framework. Eight specialized AI agents—each with a distinct role, structured Pydantic tool-set, and reward signal—operate as a coordinated team to triage patients, manage ICU capacity, dispatch drugs, staff emergency shifts, protect EHR integrity, maintain blood inventory, navigate ethical dilemmas, and maintain governance oversight.
 
-The entire system was trained, merged, benchmarked, and deployed on a single consumer GPU (NVIDIA RTX 2050, 4 GB VRAM), proving that hospital-grade clinical reasoning does not require multi-billion-parameter frontier models.
+The entire system was trained, merged, benchmarked, and deployed on a single free Kaggle T4 GPU (16 GB VRAM), proving that hospital-grade clinical reasoning does not require multi-billion-parameter frontier models.
 
 ### Key Achievements
 
@@ -47,7 +47,7 @@ The entire system was trained, merged, benchmarked, and deployed on a single con
 | **Survival Rate** | **100%** across all 5 crisis types |
 | **Violation Detection Rate** | **100%** |
 | **Model Size** | 0.5 B parameters (merged `model.safetensors` ≈ 1.9 GB) |
-| **Training Hardware** | NVIDIA RTX 2050 (4 GB VRAM) |
+| **Training Hardware** | Kaggle NVIDIA Tesla T4 (16 GB VRAM) |
 | **Training Time** | 4.39 hours (15,801 s) — 2,670 steps |
 | **Peak VRAM** | 2.84 GB |
 | **DPO Pairs** | 7,500 chosen/rejected clinical pairs |
@@ -228,7 +228,7 @@ max_length: 1024
 **Hardware & Runtime:**
 
 ```
-GPU:             NVIDIA GeForce RTX 2050 (4 GB VRAM)
+GPU:             NVIDIA Tesla T4 (16 GB VRAM) [Kaggle Free Tier]
 Peak VRAM:       2.84 GB
 Training steps:  2,670
 Train samples:   7,125
@@ -750,7 +750,7 @@ The **HR Rostering Agent** (`hr_rostering`) directly addresses the Scale AI bonu
 2. **ChromaDB StrategyMemory** — Agents use semantic RAG to pull lessons from past episodes with vector representations.
 3. **Priority Hierarchical Routing** — Deadlock mitigation and threshold-based escalation rules using a global asynchronous priority queue.
 4. **Structured Tool Calling** — High fidelity outputs achieved via strict Pydantic integration for LLM endpoints.
-5. **Consumer GPU training** — full DPO pipeline in <4.5 hours on RTX 2050 (4 GB VRAM)
+5. **Consumer GPU training** — full DPO pipeline in <4.5 hours on Kaggle T4 (4 GB VRAM)
 6. **Domain specificity beats scale** — 0.5B DPO model achieves 100% survival in structured crisis tasks
 7. **Closed-loop governance** — CMO agent provides real-time oversight of all other agents
 8. **Production merge** — LoRA adapters fully merged; zero inference-time PEFT overhead
@@ -765,7 +765,7 @@ MIT License — see [LICENSE](LICENSE)
 
 <div align="center">
 
-Built for the **Meta PyTorch OpenEnv Hackathon** · Trained on NVIDIA RTX 2050 · Deployed on 🤗 HuggingFace
+Built for the **Meta PyTorch OpenEnv Hackathon** · Trained on Kaggle T4 · Deployed on 🤗 HuggingFace
 
 **[Live Demo](https://huggingface.co/spaces/balarajr/triage-multi-agent-system) · [Model](https://huggingface.co/balarajr/triage-qwen-0.5b-dpo) · [Benchmark Results](results/bench.json)**
 

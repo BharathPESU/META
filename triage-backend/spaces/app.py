@@ -457,10 +457,10 @@ def build_ui():
     ) as demo:
         gr.Markdown("""
 # 🏥 TRIAGE: Multi-Agent Hospital Crisis Simulation
-### GRPO-Trained Qwen3.5-4B · 8 Reward Verifiers · OpenEnv-Compatible RL Pipeline
+### GRPO-Trained Qwen2.5-7B · 9 Reward Verifiers · OpenEnv-Compatible RL Pipeline
 
 A **multi-agent AI system** where 6 specialized hospital agents coordinate in real-time to manage crisis scenarios.
-Each agent uses **GRPO-trained** clinical reasoning with 8 independent reward verifiers.
+Each agent uses **GRPO-trained** clinical reasoning with 9 independent reward verifiers.
 
 > **Training:** RTX 2050 (4GB VRAM) · LoRA rank=16 · 4-bit quantization · GRPO with curriculum scheduling  
 > **Verifiers:** survival, ICU efficiency, violation detection, format compliance, reasoning quality, speed, hallucination gate, action alignment
@@ -509,7 +509,7 @@ Each agent uses **GRPO-trained** clinical reasoning with 8 independent reward ve
                 gr.Markdown("""
 ## Before vs After GRPO Training
 Compare **untuned baseline** output against **GRPO-trained** output across 4 crisis scenarios.
-All 8 reward verifiers are applied to both outputs — showing exactly what improved.
+All 9 reward verifiers are applied to both outputs — showing exactly what improved.
 
 > **📋 Understanding the metrics:**
 > - **LLM-driven** (directly improved by GRPO): `format_compliance`, `reasoning_quality`, `hallucination_gate`, `action_alignment`
@@ -529,7 +529,7 @@ All 8 reward verifiers are applied to both outputs — showing exactly what impr
             with gr.Tab("🔍 Reward Inspector"):
                 gr.Markdown("""
 ## Test Any Completion
-Paste a model completion below and see how it scores against all 8 reward verifiers.
+Paste a model completion below and see how it scores against all 9 reward verifiers.
 Use JSON format for best results: `{"action_type": "...", "target_id": 0, "priority": 1, "reasoning": "..."}`
                 """)
 
